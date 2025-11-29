@@ -1,0 +1,87 @@
+-- 🧠 MENÚ GUI: Detector de Brainrots
+-- Solo para uso en TU juego (no funciona como exploit)
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Crear ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Parent = playerGui
+gui.ResetOnSpawn = false
+
+-- Crear botón para abrir/cerrar menú
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 120, 0, 40)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.Text = "Brainrot Menu"
+toggleButton.BackgroundColor3 = Color3.fromRGB(80, 80, 200)
+toggleButton.TextColor3 = Color3.new(1,1,1)
+toggleButton.Parent = gui
+
+-- Crear ventana del menú
+local menuFrame = Instance.new("Frame")
+menuFrame.Size = UDim2.new(0, 300, 0, 350)
+menuFrame.Position = UDim2.new(0, 20, 0, 70)
+menuFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+menuFrame.Visible = false
+menuFrame.Parent = gui
+
+-- Título
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "Brainrots encontrados"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.Parent = menuFrame
+
+-- Lista de brainrots
+local list = Instance.new("ScrollingFrame")
+list.Size = UDim2.new(1, 0, 1, -40)
+list.Position = UDim2.new(0, 0, 0, 40)
+list.CanvasSize = UDim2.new(0, 0, 0, 0)
+list.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+list.Parent = menuFrame
+
+-- Función para buscar brainrots en el mapa
+local function BuscarBrainrots()
+    local items = {}
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.Name == "BrainrotItem" then
+            table.insert(items, obj)
+        end
+    end
+
+    return items
+end
+
+-- Función para actualizar la lista GUI
+local function ActualizarLista()
+    list:ClearAllChildren()
+
+    local encontrados = BuscarBrainrots()
+    local y = 0
+
+    for _, item in ipairs(encontrados) do
+        local entry = Instance.new("TextLabel")
+        entry.Size = UDim2.new(1, 0, 0, 30)
+        entry.Position = UDim2.new(0, 0, 0, y)
+        entry.Text = "• " .. item:GetFullName()
+        entry.TextColor3 = Color3.new(1,1,1)
+        entry.BackgroundTransparency = 1
+        entry.Parent = list
+
+        y = y + 32
+    end
+
+    list.CanvasSize = UDim2.new(0, 0, 0, y)
+end
+
+-- Botón abrir/cerrar menú
+toggleButton.MouseButton1Click:Connect(function()
+    menuFrame.Visible = not menuFrame.Visible
+    if menuFrame.Visible then
+        ActualizarLista()
+    end
+end)
