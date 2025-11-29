@@ -1,0 +1,59 @@
+-- Item Detector: Filtro 5M+ con menú toggle
+-- Funciona solo en tu propio juego. No explota servidores.
+
+local toggleButton = script.Parent.Parent:WaitForChild("ToggleButton")
+local detectorFrame = script.Parent.Parent:WaitForChild("DetectorFrame")
+local listFrame = detectorFrame:WaitForChild("List")
+local template = listFrame:WaitForChild("Template")
+
+local MIN_VALUE = 5000000  -- 5 millones
+
+-- Menú comienza oculto
+detectorFrame.Visible = false
+
+-------------------------
+-- TOGGLE DEL MENÚ
+-------------------------
+toggleButton.MouseButton1Click:Connect(function()
+	detectorFrame.Visible = not detectorFrame.Visible
+end)
+
+-------------------------
+-- FUNCIÓN PARA DETECTAR ITEMS
+-------------------------
+local function detectItems()
+	-- limpia la lista
+	for _, c in ipairs(listFrame:GetChildren()) do
+		if c:IsA("Frame") and c.Name ~= "Template" then
+			c:Destroy()
+		end
+	end
+
+	-- busca objetos valiosos en Workspace
+	for _, item in ipairs(workspace:GetDescendants()) do
+		if item:IsA("Model") or item:IsA("Part") then
+
+			-- revisa si tiene un NumberValue llamado "Value"
+			local val = item:FindFirstChild("Value") or item:FindFirstChild("Price") or item:FindFirstChild("Worth")
+
+			if val and val:IsA("NumberValue") and val.Value >= MIN_VALUE then
+				
+				-- crea cuadro
+				local clone = template:Clone()
+				clone.Name = item.Name
+				clone.Title.Text = item.Name
+				clone.Amount.Text = tostring(val.Value)
+				clone.Visible = true
+
+				clone.Parent = listFrame
+			end
+		end
+	end
+end
+
+-------------------------
+-- BOTÓN "ESCANEAR"
+-------------------------
+detectorFrame.Scan.MouseButton1Click:Connect(function()
+	detectItems()
+end)
