@@ -1,0 +1,165 @@
+-- 🧠 MENÚ GUI FILTRADO: solo items con valor >= 5,000,000
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Crear ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Parent = playerGui
+gui.ResetOnSpawn = false
+
+-- Botón abrir/cerrar
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 140, 0, 40)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.Text = "Brainrot Menu"
+toggleButton.BackgroundColor3 = Color3.fromRGB(80, 80, 200)
+toggleButton.TextColor3 = Color3.new(1,1,1)
+toggleButton.Parent = gui
+
+-- Ventana del menú
+local menuFrame = Instance.new("Frame")
+menuFrame.Size = UDim2.new(0, 360, 0, 420)
+menuFrame.Position = UDim2.new(0, 20, 0, 70)
+menuFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+menuFrame.Visible = false
+menuFrame.Parent = gui
+
+-- Título
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "Brainrots (≥ 5,000,000)"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.Parent = menuFrame
+
+-- Lista
+local list = Instance.new("ScrollingFrame")
+list.Size = UDim2.new(1, 0, 1, -40)
+list.Position = UDim2.new(0, 0, 0, 40)
+list.CanvasSize = UDim2.new(0, 0, 0, 0)
+list.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+list.Parent = menuFrame
+
+-- Helper: obtener valor del objeto (intenta attribute o NumberValue hijo)
+local function getItemValue(obj)
+    -- revisar atributos
+    local a = obj:GetAttribute("Value") or obj:GetAttribute("Price")
+    if a then
+        local n = tonumber(a)
+        if n then return n end
+    end
+
+    -- revisar hijos NumberValue o IntValue llamados Value/Price
+    local child = obj:FindFirstChild("Value") or obj:FindFirstChild("Price")
+    if child and (child:IsA("NumberValue") or child:IsA("IntValue")) then
+        return tonumber(child.Value)
+    end
+
+    -- buscar cualquier NumberValue hijo (primero que encuentre)
+    for _, v in ipairs(obj:GetChildren()) do
+        if v:IsA("NumberValue") or v:IsA("IntValue") then
+            return tonumber(v.Value)
+        end
+    end
+
+    return nil
+end
+
+-- Formatear número con comas (ej: 5000000 -> 5,000,000)
+local function formatNumber(n)
+    local s = tostring(math.floor(n))
+    local k
+    local res = ""
+    while #s > 3 do
+        k = s:sub(-3)
+        s = s:sub(1, #s-3)
+        res = "," .. k .. res
+    end
+    res = s .. res
+    return res
+end
+
+-- Buscar brainrots y filtrar >= 5,000,000
+local function BuscarBrainrotsFiltrados()
+    local items = {}
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.Name == "BrainrotItem" then
+            local val = getItemValue(obj)
+            if val and val >= 5000000 then
+                table.insert(items, {obj = obj, value = val})
+            end
+        end
+    end
+
+    -- ordenar por valor descendente (mayor primero)
+    table.sort(items, function(a,b) return a.value > b.value end)
+    return items
+end
+
+-- Actualizar GUI
+local function ActualizarLista()
+    list:ClearAllChildren()
+
+    local encontrados = BuscarBrainrotsFiltrados()
+    local y = 0
+
+    if #encontrados == 0 then
+        local none = Instance.new("TextLabel")
+        none.Size = UDim2.new(1, 0, 0, 30)
+        none.Position = UDim2.new(0, 0, 0, y)
+        none.Text = "No hay brainrots ≥ 5,000,000"
+        none.TextColor3 = Color3.new(1,1,1)
+        none.BackgroundTransparency = 1
+        none.Parent = list
+        y = y + 32
+    else
+        for _, entryData in ipairs(encontrados) do
+            local item = entryData.obj
+            local val = entryData.value
+
+            local entry = Instance.new("TextButton")
+            entry.Size = UDim2.new(1, 0, 0, 36)
+            entry.Position = UDim2.new(0, 0, 0, y)
+            entry.Text = "• " .. item:GetFullName() .. "  —  $" .. formatNumber(val)
+            entry.TextColor3 = Color3.new(1,1,1)
+            entry.BackgroundTransparency = 0.6
+            entry.BackgroundColor3 = Color3.fromRGB(40,40,40)
+            entry.TextXAlignment = Enum.TextXAlignment.Left
+            entry.Parent = list
+
+            -- Ejemplo opcional: al hacer clic se imprime y busca la posición
+            entry.MouseButton1Click:Connect(function()
+                print("Seleccionado:", item:GetFullName(), "Valor:", val)
+                -- Si quieres teletransportar (solo en tu juego), puedes descomentar:
+                -- local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                -- if hrp and item:IsA("BasePart") then hrp.CFrame = item.CFrame + Vector3.new(0,3,0) end
+            end)
+
+            y = y + 40
+        end
+    end
+
+    list.CanvasSize = UDim2.new(0, 0, 0, y)
+end
+
+-- Toggle botón
+toggleButton.MouseButton1Click:Connect(function()
+    menuFrame.Visible = not menuFrame.Visible
+    if menuFrame.Visible then
+        ActualizarLista()
+    end
+end)
+
+-- Opcional: refrescar cada X segundos si quieres actualización automática
+local REFRESH_SECONDS = 8
+spawn(function()
+    while true do
+        wait(REFRESH_SECONDS)
+        if menuFrame.Visible then
+            ActualizarLista()
+        end
+    end
+end)
